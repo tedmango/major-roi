@@ -1,19 +1,13 @@
-export type MajorResult = {
-  major: string;
-  debt: number;
-  salary: number;
-  monthlyPayment: number;
-  yearsToPayoff: number;
-};
+import { majors } from "@/lib/data/majors";
+import type { MajorsResponse } from "@/lib/types";
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const school = searchParams.get("school");
-
-  const results: MajorResult[] = [
-    { major: "Nursing", debt: 21000, salary: 62000, monthlyPayment: 230, yearsToPayoff: 3.4 },
-    { major: "Psychology", debt: 24000, salary: 41000, monthlyPayment: 265, yearsToPayoff: 7.1 },
-  ];
-
-  return Response.json({ school, results });
+/**
+ * GET /api/majors
+ * Returns every major with salary, unemployment and debt data.
+ * Right now this reads placeholder data; in step 8 it will pull
+ * real numbers from the College Scorecard API instead.
+ */
+export async function GET() {
+  const body: MajorsResponse = { majors };
+  return Response.json(body);
 }

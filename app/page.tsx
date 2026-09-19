@@ -1,69 +1,159 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { GraduationCapIcon } from "lucide-react";
+import { AssumptionsPanel } from "@/components/AssumptionsPanel";
+import { BudgetBreakdown } from "@/components/BudgetBreakdown";
+import { MajorHeader } from "@/components/MajorHeader";
+import { MajorList } from "@/components/MajorList";
+import { RoiSummary } from "@/components/RoiSummary";
+import { cities } from "@/lib/data/cities";
+import { calculateBudget, calculateRoi } from "@/lib/finance";
+import type { Assumptions, Major, MajorsResponse } from "@/lib/types";
+
+const DEFAULT_MAJOR_ID = "nursing";
+const DEFAULT_CITY_ID = "national";
+
+function defaultAssumptions(debt: number): Assumptions {
+  return { debt, interestRate: 6.53, termYears: 10, outOfPocket: 24000 };
+}
 
 export default function Home() {
+  const [majors, setMajors] = useState<Major[]>([]);
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [majorId, setMajorId] = useState(DEFAULT_MAJOR_ID);
+  const [cityId, setCityId] = useState(DEFAULT_CITY_ID);
+  const [assumptions, setAssumptions] = useState<Assumptions>(defaultAssumptions(0));
+
+  // Load majors from the backend route (app/api/majors/route.ts)
+  useEffect(() => {
+    async function load() {
+      try {
+        const res = await fetch("/api/majors");
+        if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+        const data: MajorsResponse = await res.json();
+        setMajors(data.majors);
+        const first = data.majors.find((m) => m.id === DEFAULT_MAJOR_ID) ?? data.majors[0];
+        if (first) {
+          setMajorId(first.id);
+          setAssumptions(defaultAssumptions(first.avgDebt));
+        }
+        setStatus("ready");
+      } catch (err) {
+        console.error(err);
+        setStatus("error");
+      }
+    }
+    load();
+  }, []);
+
+  const major = majors.find((m) => m.id === majorId) ?? majors[0];
+  const city = cities.find((c) => c.id === cityId) ?? cities[0];
+
+  const roi = useMemo(
+    () => (major ? calculateRoi(major, city, assumptions) : null),
+    [major, city, assumptions],
+  );
+  const budget = useMemo(
+    () => (roi ? calculateBudget(roi.startingSalary, city, roi.monthlyPayment) : null),
+    [roi, city],
+  );
+
+  function handleSelectMajor(id: string) {
+    const next = majors.find((m) => m.id === id);
+    if (!next) return;
+    setMajorId(id);
+    setAssumptions((prev) => ({ ...prev, debt: next.avgDebt }));
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="flex min-h-screen w-full flex-col bg-canvas font-sans text-ink">
+      <div className="flex items-center gap-3 border-b border-line bg-surface px-6 py-3 lg:px-10">
+        <GraduationCapIcon className="h-5 w-5 text-accent" aria-hidden="true" />
+        <p className="text-sm font-semibold tracking-tight">Degree Payback</p>
+        <p className="hidden text-sm text-muted sm:block">
+          What a major earns, what it costs, and when it pays for itself
+        </p>
+      </div>
+
+      {status === "loading" && (
+        <p className="px-6 py-10 text-sm text-muted lg:px-10">Loading majors…</p>
+      )}
+
+      {status === "error" && (
+        <div className="px-6 py-10 lg:px-10">
+          <p className="text-sm font-semibold text-negative">Couldn&rsquo;t load majors.</p>
+          <p className="mt-1 text-sm text-muted">
+            The request to /api/majors failed. Check that the dev server is running and that
+            app/api/majors/route.ts exists, then refresh the page.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
+      )}
+
+      {status === "ready" && major && roi && budget && (
+        <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+          <aside className="border-b border-line bg-surface lg:h-[calc(100vh-49px)] lg:w-[340px] lg:shrink-0 lg:border-b-0 lg:border-r">
+            <div className="h-[420px] lg:h-full">
+              <MajorList majors={majors} selectedId={major.id} onSelect={handleSelectMajor} />
+            </div>
+          </aside>
+
+          <main className="min-w-0 flex-1 overflow-y-auto lg:h-[calc(100vh-49px)]">
+            <MajorHeader
+              major={major}
+              city={city}
+              cities={cities}
+              roi={roi}
+              onCityChange={setCityId}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+            <div className="space-y-6 px-6 py-6 lg:px-10 lg:py-8">
+              <RoiSummary
+                roi={roi}
+                majorName={major.name}
+                cityName={city.id === "national" ? "an average U.S. city" : city.name}
+              />
+
+              <div className="grid gap-6 xl:grid-cols-2">
+                <BudgetBreakdown budget={budget} city={city} />
+                <AssumptionsPanel
+                  assumptions={assumptions}
+                  averageDebt={major.avgDebt}
+                  monthlyPayment={roi.monthlyPayment}
+                  totalInterest={roi.totalInterest}
+                  onChange={(next) => setAssumptions((prev) => ({ ...prev, ...next }))}
+                  onReset={() => setAssumptions(defaultAssumptions(major.avgDebt))}
+                />
+              </div>
+
+              <details className="rounded-card border border-line bg-surface px-6 py-4 text-sm">
+                <summary className="cursor-pointer font-medium text-ink">
+                  How these numbers are calculated
+                </summary>
+                <div className="mt-3 space-y-2 text-sm leading-relaxed text-muted">
+                  <p>
+                    Salaries are median full-time wages by major for ages 22&ndash;27 and
+                    35&ndash;45, then adjusted for the local wage level of the city you pick
+                    (local pay moves with local costs, but only partly).
+                  </p>
+                  <p>
+                    Break-even compares after-tax pay against a same-age worker with a
+                    high-school diploma, starting at <span className="font-mono">$38,000</span>.
+                    The degree is charged for tuition paid in cash plus four years of wages given
+                    up while enrolled, with loan payments subtracted each year of the repayment
+                    term.
+                  </p>
+                  <p>
+                    Cost of living uses a national index of 100 with median one-bedroom rent,
+                    applied to the first-year budget. Estimates are directional, not financial
+                    advice.
+                  </p>
+                </div>
+              </details>
+            </div>
+          </main>
         </div>
-      </main>
+      )}
     </div>
   );
 }
