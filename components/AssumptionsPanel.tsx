@@ -4,10 +4,17 @@ import type { ReactNode } from "react";
 import { RotateCcwIcon } from "lucide-react";
 import type { Assumptions } from "@/lib/types";
 import { currency } from "@/lib/format";
+import { FEDERAL_UNDERGRAD_LIMIT } from "@/lib/finance";
 
 interface AssumptionsPanelProps {
   assumptions: Assumptions;
-  averageDebt: number;
+  /** Debt estimated from the answers on the first page */
+  estimatedDebt: number;
+  /** How much more (+) or less (-) this major's grads borrow than the school average */
+  majorAdjustment: number;
+  majorName: string;
+  /** Debt used for this major after the adjustment */
+  majorDebt: number;
   monthlyPayment: number;
   totalInterest: number;
   onChange: (next: Partial<Assumptions>) => void;
@@ -16,13 +23,18 @@ interface AssumptionsPanelProps {
 
 export function AssumptionsPanel({
   assumptions,
-  averageDebt,
+  estimatedDebt,
+  majorAdjustment,
+  majorName,
+  majorDebt,
   monthlyPayment,
   totalInterest,
   onChange,
   onReset,
 }: AssumptionsPanelProps) {
-  const usingAverage = Math.round(assumptions.debt) === Math.round(averageDebt);
+  const usingEstimate = Math.round(assumptions.debt) === Math.round(estimatedDebt);
+  const overLimit = majorDebt > FEDERAL_UNDERGRAD_LIMIT;
+  const adjusted = Math.abs(majorAdjustment) >= 500;
 
   return (
     <section className="rounded-card border border-line bg-surface p-6" aria-label="Your numbers">
@@ -34,14 +46,20 @@ export function AssumptionsPanel({
           className="flex items-center gap-1.5 text-xs text-muted transition-colors duration-150 hover:text-accent"
         >
           <RotateCcwIcon className="h-3.5 w-3.5" aria-hidden="true" />
-          Reset to averages
+          Reset to your answers
         </button>
       </div>
 
       <div className="mt-5 space-y-5">
         <Field
-          label="Debt at graduation"
-          hint={usingAverage ? "Average for this major" : `Average is ${currency(averageDebt)}`}
+          label="Your borrowing estimate"
+          hint={
+            overLimit
+              ? `Above the ${currency(FEDERAL_UNDERGRAD_LIMIT)} federal limit for most dependent students; the rest would need private or parent loans.`
+              : usingEstimate
+                ? "Estimated from your answers"
+                : `Your answers suggested ${currency(estimatedDebt)}`
+          }
           value={currency(assumptions.debt)}
         >
           <input
@@ -51,14 +69,21 @@ export function AssumptionsPanel({
             step={1000}
             value={assumptions.debt}
             onChange={(e) => onChange({ debt: Number(e.target.value) })}
-            aria-label="Debt at graduation"
+            aria-label="Your borrowing estimate"
             className="w-full"
           />
+          {adjusted && (
+            <p className="mt-1.5 text-xs text-ink">
+              {majorName} grads here borrow {currency(Math.abs(majorAdjustment))}{" "}
+              {majorAdjustment > 0 ? "more" : "less"} than the school average, so this major uses{" "}
+              <span className="font-mono">{currency(majorDebt)}</span>.
+            </p>
+          )}
         </Field>
 
         <Field
           label="Tuition paid in cash"
-          hint="Savings, family help and scholarships you spend up front"
+          hint="Savings, family help, scholarships and work over four years"
           value={currency(assumptions.outOfPocket)}
         >
           <input

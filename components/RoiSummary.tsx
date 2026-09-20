@@ -7,15 +7,17 @@ interface RoiSummaryProps {
   roi: RoiResult;
   majorName: string;
   cityName: string;
+  /** Hide the single-major chart when a comparison chart is shown elsewhere */
+  showChart?: boolean;
 }
 
-export function RoiSummary({ roi, majorName, cityName }: RoiSummaryProps) {
+export function RoiSummary({ roi, majorName, cityName, showChart = true }: RoiSummaryProps) {
   const years = roi.breakEvenYear;
   const paysOff = years !== null;
 
   return (
     <section className="rounded-card border border-line bg-surface" aria-label="Return on investment">
-      <div className="grid gap-8 border-b border-line p-6 lg:grid-cols-[minmax(0,1fr)_260px] lg:p-8">
+      <div className={`grid gap-8 p-6 ${showChart ? "border-b border-line" : ""} lg:grid-cols-[minmax(0,1fr)_260px] lg:p-8`}>
         <div>
           <h2 className="text-xs font-semibold uppercase tracking-wide text-muted">
             Time to break even
@@ -43,6 +45,7 @@ export function RoiSummary({ roi, majorName, cityName }: RoiSummaryProps) {
         </div>
       </div>
 
+      {showChart && (
       <div className="p-6 lg:p-8">
         <div className="mb-4 flex items-baseline justify-between gap-4">
           <h3 className="text-sm font-semibold text-ink">Cumulative gain over skipping the degree</h3>
@@ -50,6 +53,7 @@ export function RoiSummary({ roi, majorName, cityName }: RoiSummaryProps) {
         </div>
         <PayoffChart points={roi.points} breakEvenYear={roi.breakEvenYear} />
       </div>
+      )}
     </section>
   );
 }

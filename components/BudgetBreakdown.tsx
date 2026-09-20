@@ -21,7 +21,9 @@ export function BudgetBreakdown({ budget, city }: BudgetBreakdownProps) {
   return (
     <section className="rounded-card border border-line bg-surface p-6" aria-label="Monthly budget">
       <div className="flex items-baseline justify-between gap-4">
-        <h2 className="text-sm font-semibold text-ink">First-year month in {city.name}</h2>
+        <h2 className="text-sm font-semibold text-ink">
+          {city.id === "national" ? "First-year month, U.S. average" : `First-year month in ${city.name}`}
+        </h2>
         <p className="font-mono text-xs text-muted">Cost index {city.costIndex}</p>
       </div>
 

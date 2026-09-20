@@ -2,7 +2,7 @@ import type { City } from "@/lib/types";
 
 /** Cost-of-living index: 100 = national average. Rent is median one-bedroom. */
 export const cities: City[] = [
-  { id: "national", name: "National average", costIndex: 100, medianRent: 1450 },
+  { id: "national", name: "Anywhere (U.S. average)", costIndex: 100, medianRent: 1450 },
   { id: "atlanta", name: "Atlanta, GA", costIndex: 100, medianRent: 1600 },
   { id: "austin", name: "Austin, TX", costIndex: 101, medianRent: 1500 },
   { id: "boise", name: "Boise, ID", costIndex: 102, medianRent: 1300 },
